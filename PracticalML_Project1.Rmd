@@ -1,0 +1,82 @@
+
+# Overview
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+# Data
+
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+```{r}
+# get the training and test data
+if (!file.exists("pml-training.csv"))
+{
+    download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile="pml-training.csv",method="libcurl")
+}
+if (!file.exists("pml-testing.csv"))
+{
+    download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",destfile="pml-testing.csv",method="libcurl")
+}
+
+# load the training and test data sets
+training = read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
+testing = read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
+```
+
+# Objectives
+
+You should create a report describing how you built your model
+
+How you used cross validation
+
+What you think the expected out of sample error is
+
+Why you made the choices you did
+
+You will also use your prediction model to predict 20 different test cases
+
+Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5
+
+link to a Github repo with your R markdown and compiled HTML file describing your analysis
+
+# Exploratory Data Analysis
+
+```{r}
+library(caret)
+set.seed(62433)
+
+# k-means (break training into segments)
+
+# build model - every row has at least one missing value
+mRf = train(classe ~ ., method="rf", data=training)
+mGbm = train(classe ~ ., method="gbm", data=training, verbose=FALSE)
+mLda = train(classe ~ ., method="lda", data=training)
+
+# predict
+pRf = predict(mRf, testing)
+pGbm = predict(mGbm, testing)
+pLda = predict(mLda, testing)
+
+# combine the predictions
+dfComb = data.frame(pRf, pGbm, pLda, classe = testing$classe)
+mComb <- train(classe ~ ., dfComb)
+pComb <- predict(mComb, testing)
+
+# confusion matrix (for accuracy)
+cmRf <- confusionMatrix(pRf, testing$classe)
+cmGbm <- confusionMatrix(pGbm, testing$classe)
+cmLda <- confusionMatrix(pLda, testing$classe)
+cmComb <- confusionMatrix(pComb, testing$classe)
+
+# accuracy of individual and combined
+cmRf$overall['Accuracy']
+cmGbm$overall['Accuracy']
+cmLda$overall['Accuracy']
+cmComb$overall['Accuracy']
+```
+
+
