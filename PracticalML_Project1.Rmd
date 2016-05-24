@@ -1,9 +1,31 @@
 
-# Overview
+# Practical Machine Learning Project
 
-One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+## Background
 
-# Data
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Objectives
+
+You should create a report describing how you built your model
+
+How you used cross validation
+
+What you think the expected out of sample error is
+
+Why you made the choices you did
+
+You will also use your prediction model to predict 20 different test cases
+
+Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5
+
+link to a Github repo with your R markdown and compiled HTML file describing your analysis
+
+## Data
+
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.
 
 The training data for this project are available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
@@ -27,56 +49,101 @@ training = read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
 testing = read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
 ```
 
-# Objectives
+Columns with little or no variability won't be good predictors and will be removed.  
 
-You should create a report describing how you built your model
+The data sets contain many columns with no data and the first 7 columns do provide any useful infomration in our analysis.  The data will be cleaned by removing the first 7 columns and any columns with no (or NA) data.
 
-How you used cross validation
+```{r}
+# remove columns with no data (and near-zero??)
+#training = nearZeroVar(training, saveMetrics = TRUE)
+#testing = nearZeroVar(testing, saveMetrics = TRUE)
+training = training[,colSums(is.na(training)) == 0]
+testing = testing[,colSums(is.na(testing)) == 0]
 
-What you think the expected out of sample error is
+#write.csv(training, "pml-training-pass1.csv")
+#write.csv(testing, "pml-testing-pass1.csv")
 
-Why you made the choices you did
+# the first 7 columns aren't required for our analysis
+training = training[, -c(1:7)]
+testing = testing[, -c(1:7)]
 
-You will also use your prediction model to predict 20 different test cases
+#write.csv(training, "pml-training-pass2.csv")
+#write.csv(testing, "pml-testing-pass2.csv")
 
-Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5
+training$classe = as.factor(training$classe)
+```
 
-link to a Github repo with your R markdown and compiled HTML file describing your analysis
 
-# Exploratory Data Analysis
+badColumns <- nearZeroVar(training, saveMetrics = TRUE)
+training <- training[, badColumns$nzv==FALSE]
+training$classe = factor(training$classe)
+
+
+
+Now the data has been loaded and in a useable state, the training data set will be split into a training (80%) and validation (20%) data set for the purpose of cross-validation.
 
 ```{r}
 library(caret)
-set.seed(62433)
+set.seed(843916)
+inTrain <- createDataPartition(training$classe, p = 0.6, list = FALSE)
+validation <- training[-inTrain, ]
+training <- training[inTrain, ]
 
-# k-means (break training into segments)
+# while testing!!
+good_training = training
+good_testing = testing
+good_validation = validation
+```
 
-# build model - every row has at least one missing value
-mRf = train(classe ~ ., method="rf", data=training)
-mGbm = train(classe ~ ., method="gbm", data=training, verbose=FALSE)
-mLda = train(classe ~ ., method="lda", data=training)
+
+Pre processing
+
+```{r}
+preObj <- preProcess(x = training, method = c("center", "scale", "pca"), thresh = 0.9)
+print(preObj)
+pTrain <- predict(preObj, training)
+```
+
+
+
+```{r}
+tc = trainControl(method = "cv", number = 5)
+
+# build model
+mRp = train(classe ~ ., method="rpart", data=training) # classification tree
+mRf = train(classe ~ ., method="rf", data=training) # random forest (slow....)
+mGbm = train(classe ~ ., method="gbm", data=training, verbose=FALSE) # boosted trees
+mLda = train(classe ~ ., method="lda", data=training) # linear discriminant analysis
+
+#library(rattle)
+#fancyRpartPlot(mRp$finalModel)
+
+# Calculation of variable importance for regression and classification models
+varImpObj <- varImp(mRf)
+plot(varImpObj, main = "Variables Importance", top = 30)
 
 # predict
-pRf = predict(mRf, testing)
-pGbm = predict(mGbm, testing)
-pLda = predict(mLda, testing)
+pRp = predict(mRp, validation)
+pRf = predict(mRf, validation)
+pGbm = predict(mGbm, validation)
+pLda = predict(mLda, validation)
 
 # combine the predictions
-dfComb = data.frame(pRf, pGbm, pLda, classe = testing$classe)
+dfComb = data.frame(pRp, pRf, pGbm, pLda, classe = testing$classe)
 mComb <- train(classe ~ ., dfComb)
 pComb <- predict(mComb, testing)
 
 # confusion matrix (for accuracy)
+cmRp <- confusionMatrix(pRp, testing$classe)
 cmRf <- confusionMatrix(pRf, testing$classe)
 cmGbm <- confusionMatrix(pGbm, testing$classe)
 cmLda <- confusionMatrix(pLda, testing$classe)
 cmComb <- confusionMatrix(pComb, testing$classe)
 
 # accuracy of individual and combined
+cmRp$overall['Accuracy']
 cmRf$overall['Accuracy']
 cmGbm$overall['Accuracy']
 cmLda$overall['Accuracy']
 cmComb$overall['Accuracy']
 ```
-
-
