@@ -1,3 +1,10 @@
+---
+output:
+  pdf_document:
+    keep_tex: no
+  html_document:
+    keep_md: no
+---
 
 # Practical Machine Learning Project
 
@@ -49,101 +56,120 @@ training = read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
 testing = read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
 ```
 
-Columns with little or no variability won't be good predictors and will be removed.  
-
-The data sets contain many columns with no data and the first 7 columns do provide any useful infomration in our analysis.  The data will be cleaned by removing the first 7 columns and any columns with no (or NA) data.
+Columns with little or no variability aren't good predictors and will be removed along with the first 7 columns that don't provide any useful infomration in our analysis.
 
 ```{r}
-# remove columns with no data (and near-zero??)
-#training = nearZeroVar(training, saveMetrics = TRUE)
-#testing = nearZeroVar(testing, saveMetrics = TRUE)
+# remove columns with no data
 training = training[,colSums(is.na(training)) == 0]
 testing = testing[,colSums(is.na(testing)) == 0]
 
-#write.csv(training, "pml-training-pass1.csv")
-#write.csv(testing, "pml-testing-pass1.csv")
-
 # the first 7 columns aren't required for our analysis
-training = training[, -c(1:7)]
-testing = testing[, -c(1:7)]
+#training = training[, -c(1:7)]
+#testing = testing[, -c(1:7)]
 
-#write.csv(training, "pml-training-pass2.csv")
-#write.csv(testing, "pml-testing-pass2.csv")
-
+# classe is a factor variable
 training$classe = as.factor(training$classe)
+
+# remove the last column (problem_id) and replace with classe
+#testing = testing[,-ncol(testing)]
+#testing$classe = NA
 ```
 
-
-badColumns <- nearZeroVar(training, saveMetrics = TRUE)
-training <- training[, badColumns$nzv==FALSE]
-training$classe = factor(training$classe)
-
-
-
-Now the data has been loaded and in a useable state, the training data set will be split into a training (80%) and validation (20%) data set for the purpose of cross-validation.
+Now the data has been loaded and in a useable state, the training data set will be split into a training (60%) and validation (40%) data set for the purpose of cross-validation.
 
 ```{r}
 library(caret)
-set.seed(843916)
+set.seed(9243)
 inTrain <- createDataPartition(training$classe, p = 0.6, list = FALSE)
 validation <- training[-inTrain, ]
 training <- training[inTrain, ]
 
-# while testing!!
-good_training = training
-good_testing = testing
-good_validation = validation
+#training = training[, -c(1,6)]
+#validation = validation[, -c(1,6)]
+#testing = testing[, -c(1,6)]
+
+write.csv(training, "p-training3.csv")
+write.csv(testing, "p-testing3.csv")
 ```
 
+## Building the Models
 
-Pre processing
-
-```{r}
-preObj <- preProcess(x = training, method = c("center", "scale", "pca"), thresh = 0.9)
-print(preObj)
-pTrain <- predict(preObj, training)
-```
-
-
+### Classification Tree Model
 
 ```{r}
-tc = trainControl(method = "cv", number = 5)
-
 # build model
-mRp = train(classe ~ ., method="rpart", data=training) # classification tree
-mRf = train(classe ~ ., method="rf", data=training) # random forest (slow....)
-mGbm = train(classe ~ ., method="gbm", data=training, verbose=FALSE) # boosted trees
-mLda = train(classe ~ ., method="lda", data=training) # linear discriminant analysis
+mRp = rpart(classe ~ ., method = "class", data = training)
 
-#library(rattle)
-#fancyRpartPlot(mRp$finalModel)
-
-# Calculation of variable importance for regression and classification models
-varImpObj <- varImp(mRf)
-plot(varImpObj, main = "Variables Importance", top = 30)
-
-# predict
-pRp = predict(mRp, validation)
-pRf = predict(mRf, validation)
-pGbm = predict(mGbm, validation)
-pLda = predict(mLda, validation)
-
-# combine the predictions
-dfComb = data.frame(pRp, pRf, pGbm, pLda, classe = testing$classe)
-mComb <- train(classe ~ ., dfComb)
-pComb <- predict(mComb, testing)
+# predict on the validation dataset
+pRp = predict(mRp, validation, type = "class")
 
 # confusion matrix (for accuracy)
-cmRp <- confusionMatrix(pRp, testing$classe)
-cmRf <- confusionMatrix(pRf, testing$classe)
-cmGbm <- confusionMatrix(pGbm, testing$classe)
-cmLda <- confusionMatrix(pLda, testing$classe)
-cmComb <- confusionMatrix(pComb, testing$classe)
+cmRp <- confusionMatrix(pRp, validation$classe)
 
 # accuracy of individual and combined
 cmRp$overall['Accuracy']
-cmRf$overall['Accuracy']
-cmGbm$overall['Accuracy']
-cmLda$overall['Accuracy']
-cmComb$overall['Accuracy']
 ```
+
+### Random Forest Model
+
+```{r}
+# build model
+# v. slow and similar accuracy
+#mRf = train(classe~., data=training, method="rf",
+#                trControl=trainControl(method="cv",number=5),
+#                prox=TRUE, allowParallel=TRUE)
+
+mRf = randomForest(classe ~ ., data = training)
+
+# predict on the validation dataset
+pRf = predict(mRf, validation)
+
+# confusion matrix (for accuracy)
+cmRf <- confusionMatrix(pRf, validation$classe)
+
+# accuracy of individual and combined
+cmRf$overall['Accuracy']
+```
+
+
+### Generalised Boosted Regression Model
+
+```{r}
+# build model
+# v. slow and similar accuracy
+mGbm = train(classe~., data=training, method="gbm", verbose=FALSE,
+             trControl=trainControl(method="repeatedcv",number=5,repeats=1))
+
+# predict on the validation dataset
+pGbm = predict(mGbm, validation)
+
+# confusion matrix (for accuracy)
+cmGbm <- confusionMatrix(pGbm, validation$classe)
+
+# accuracy of individual and combined
+cmGbm$overall['Accuracy']
+```
+
+### Selection
+
+The random forest model has the best accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy:
+
+```{r}
+1-cmRf$overall['Accuracy']
+```
+
+## Testing
+
+Run the model on the test data set.
+
+```{r}
+# some of the testing columns are a different data type to the training
+# convert from int to num so the prediction can be run
+t2 = transform(testing,
+               magnet_dumbbell_z = as.numeric(magnet_dumbbell_z), 
+               magnet_forearm_y = as.numeric(magnet_forearm_y),
+               magnet_forearm_z = as.numeric(magnet_forearm_z))
+# predict on the testing dataset
+pTest = predict(mRf, t2)
+```
+
