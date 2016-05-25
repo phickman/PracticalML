@@ -1,4 +1,6 @@
 ---
+title: Practical Machine Learning Project
+author: Paul Hickman
 output:
   html_document:
     keep_md: no
@@ -6,39 +8,38 @@ output:
     keep_tex: no
 ---
 
-# Practical Machine Learning Project
-
 ## Background
 
-Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
 
-## Objectives
-
-You should create a report describing how you built your model
-
-How you used cross validation
-
-What you think the expected out of sample error is
-
-Why you made the choices you did
-
-You will also use your prediction model to predict 20 different test cases
-
-Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5
-
-link to a Github repo with your R markdown and compiled HTML file describing your analysis
+The goal of this project is to use data from accelerometers on the belt, forearm, arm, and dumbell to predict the activity 20 test subjects were performing.
 
 ## Data
 
 Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
 
-Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.  More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
-The training data for this project are available here:
+The training data for this project is available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
 
-The test data are available here:
+The test data is available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+### Libraries
+
+Load the required libraries.
+
+```{r warning=FALSE, error=FALSE, message=FALSE}
+library(caret)
+library(rpart)
+library(randomForest)
+library(gbm)
+library(plyr)
+library(dplyr)
+```
+
+### Loading the Data
 
 ```{r}
 # get the training and test data
@@ -51,12 +52,14 @@ if (!file.exists("pml-testing.csv"))
     download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",destfile="pml-testing.csv",method="libcurl")
 }
 
-# load the training and test data sets
+# load the training and test datasets (removing NA and error values)
 training = read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
 testing = read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
 ```
 
-Columns with little or no variability aren't good predictors and will be removed along with the first 7 columns that don't provide any useful infomration in our analysis.
+### Tidying the Data
+
+Columns with little or no variability aren't good predictors and will be removed along with the first 7 columns that don't provide any useful information in our analysis.
 
 ```{r}
 # remove columns with no data
@@ -71,14 +74,14 @@ testing = testing[, -c(1:7)]
 ```{r}
 ############ REMOVE BEFORE PUBLISHING!
 # just to make the models work faster....
-library(caret)
-training = training[createDataPartition(training$classe, p = 0.1, list = FALSE),]
+training = training[createDataPartition(training$classe, p = 0.05, list = FALSE),]
 ```
 
-Now the data has been loaded and in a useable state, the training data set will be split into a training (60%) and validation (40%) data set for the purpose of cross-validation.
+### Dividing the Data
+
+Now the data has been loaded and in a useable state, the training dataset will be split into a training (60%) and validation (40%) dataset for the purpose of cross-validation.
 
 ```{r}
-library(caret)
 set.seed(9243)
 inTrain <- createDataPartition(training$classe, p = 0.6, list = FALSE)
 validation <- training[-inTrain, ]
@@ -87,10 +90,11 @@ training <- training[inTrain, ]
 
 ## Building the Models
 
+The models will be built using all available variables in the dataset.  The models to be created are classification tree, random forest and generalised boosted regression.  These models have been selected based on their accuracy with this type of data.  The models will be used against the validation dataset and the model with the highest accuracy will be used with the testing dataset.
+
 ### Classification Tree Model
 
 ```{r}
-library(rpart)
 # build model
 mRp = rpart(classe ~ ., method = "class", data = training)
 
@@ -99,21 +103,19 @@ pRp = predict(mRp, validation, type = "class")
 
 # confusion matrix (for accuracy)
 cmRp <- confusionMatrix(pRp, validation$classe)
-
-# accuracy of individual and combined
-cmRp$overall['Accuracy']
+cmRp
 ```
+
+The accuracy of a classification tree model is **`r cmRp$overall['Accuracy']`**.
 
 ### Random Forest Model
 
 ```{r}
-library(randomForest)
 # build model
 # v. slow and similar accuracy
 #mRf = train(classe~., data=training, method="rf",
 #                trControl=trainControl(method="cv",number=5),
 #                prox=TRUE, allowParallel=TRUE)
-
 mRf = randomForest(classe ~ ., data = training)
 
 # predict on the validation dataset
@@ -121,11 +123,10 @@ pRf = predict(mRf, validation)
 
 # confusion matrix (for accuracy)
 cmRf <- confusionMatrix(pRf, validation$classe)
-
-# accuracy of individual and combined
-cmRf$overall['Accuracy']
+cmRf
 ```
 
+The accuracy of a random forest model is **`r cmRf$overall['Accuracy']`**.
 
 ### Generalised Boosted Regression Model
 
@@ -140,33 +141,31 @@ pGbm = predict(mGbm, validation)
 
 # confusion matrix (for accuracy)
 cmGbm <- confusionMatrix(pGbm, validation$classe)
-
-# accuracy of individual and combined
-cmGbm$overall['Accuracy']
+cmGbm
 ```
 
-### Selection
+The accuracy of a boosted model is **`r cmGbm$overall['Accuracy']`**.
 
-The random forest model has the best accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy:
+### Model Selection
 
-```{r}
-1-cmRf$overall['Accuracy']
-```
+The random forest model has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **`r 1-cmRf$overall['Accuracy']`**.
 
 ## Testing
 
-Run the model on the test data set.
+The random forest model will be run on the test dataset to predict the category of exercise being performed.
 
 ```{r}
 # the predict function is not happy with the data types as they are slightly different
 # copying in a row of data from the training data and then removing it was the best
 # way to have the testing match the training data types
-library(dplyr)
 testing_new = rbind.fill(training[2, -ncol(training)], testing)
 testing_new <- testing_new[-1, ]
+```
 
+The answer to the Coursera project is:
+
+```{r}
 # predict on the testing dataset
 pTest = predict(mRf, testing_new)
 pTest
 ```
-
