@@ -1,9 +1,9 @@
 ---
 output:
-  pdf_document:
-    keep_tex: no
   html_document:
     keep_md: no
+  pdf_document:
+    keep_tex: no
 ---
 
 # Practical Machine Learning Project
@@ -64,15 +64,14 @@ training = training[,colSums(is.na(training)) == 0]
 testing = testing[,colSums(is.na(testing)) == 0]
 
 # the first 7 columns aren't required for our analysis
-#training = training[, -c(1:7)]
-#testing = testing[, -c(1:7)]
+training = training[, -c(1:7)]
+testing = testing[, -c(1:7)]
+```
 
-# classe is a factor variable
-training$classe = as.factor(training$classe)
-
-# remove the last column (problem_id) and replace with classe
-#testing = testing[,-ncol(testing)]
-#testing$classe = NA
+```{r}
+############ REMOVE BEFORE PUBLISHING!
+# just to make the models work faster....
+#training = training[createDataPartition(training$classe, p = 0.1, list = FALSE),]
 ```
 
 Now the data has been loaded and in a useable state, the training data set will be split into a training (60%) and validation (40%) data set for the purpose of cross-validation.
@@ -83,13 +82,6 @@ set.seed(9243)
 inTrain <- createDataPartition(training$classe, p = 0.6, list = FALSE)
 validation <- training[-inTrain, ]
 training <- training[inTrain, ]
-
-#training = training[, -c(1,6)]
-#validation = validation[, -c(1,6)]
-#testing = testing[, -c(1,6)]
-
-write.csv(training, "p-training3.csv")
-write.csv(testing, "p-testing3.csv")
 ```
 
 ## Building the Models
@@ -97,6 +89,7 @@ write.csv(testing, "p-testing3.csv")
 ### Classification Tree Model
 
 ```{r}
+library(rpart)
 # build model
 mRp = rpart(classe ~ ., method = "class", data = training)
 
@@ -113,6 +106,7 @@ cmRp$overall['Accuracy']
 ### Random Forest Model
 
 ```{r}
+library(randomForest)
 # build model
 # v. slow and similar accuracy
 #mRf = train(classe~., data=training, method="rf",
@@ -163,13 +157,15 @@ The random forest model has the best accuracy and will be selected.  The out of 
 Run the model on the test data set.
 
 ```{r}
-# some of the testing columns are a different data type to the training
-# convert from int to num so the prediction can be run
-t2 = transform(testing,
-               magnet_dumbbell_z = as.numeric(magnet_dumbbell_z), 
-               magnet_forearm_y = as.numeric(magnet_forearm_y),
-               magnet_forearm_z = as.numeric(magnet_forearm_z))
+# the predict function is not happy with the data types as they are slightly different
+# copying in a row of data from the training data and then removing it was the best
+# way to have the testing match the training data types
+library(dplyr)
+testing_new = rbind.fill(training[2, -ncol(training)], testing)
+testing_new <- testing_new[-1, ]
+
 # predict on the testing dataset
-pTest = predict(mRf, t2)
+pTest = predict(mRf, testing_new)
+pTest
 ```
 
