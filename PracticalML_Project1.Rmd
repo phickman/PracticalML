@@ -71,7 +71,8 @@ testing = testing[, -c(1:7)]
 ```{r}
 ############ REMOVE BEFORE PUBLISHING!
 # just to make the models work faster....
-#training = training[createDataPartition(training$classe, p = 0.1, list = FALSE),]
+library(caret)
+training = training[createDataPartition(training$classe, p = 0.1, list = FALSE),]
 ```
 
 Now the data has been loaded and in a useable state, the training data set will be split into a training (60%) and validation (40%) data set for the purpose of cross-validation.
