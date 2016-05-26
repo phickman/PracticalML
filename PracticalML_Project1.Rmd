@@ -8,25 +8,13 @@ output:
     keep_tex: no
 ---
 
-## Background
+# Background
 
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
 
 The goal of this project is to use data from accelerometers on the belt, forearm, arm, and dumbell to predict the activity 20 test subjects were performing.
 
-## Data
-
-Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
-
-Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.  More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
-
-The training data for this project is available here:
-https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
-
-The test data is available here:
-https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
-
-### Libraries
+# Libraries
 
 Load the required libraries.
 
@@ -39,7 +27,19 @@ library(plyr)
 library(dplyr)
 ```
 
-### Loading the Data
+# Data
+
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.  More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+The training data for this project is available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data is available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+## Loading the Data
 
 ```{r}
 # get the training and test data
@@ -57,7 +57,7 @@ training = read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
 testing = read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
 ```
 
-### Tidying the Data
+## Tidying the Data
 
 Columns with little or no variability aren't good predictors and will be removed along with the first 7 columns that don't provide any useful information in our analysis.
 
@@ -71,9 +71,9 @@ training = training[, -c(1:7)]
 testing = testing[, -c(1:7)]
 ```
 
-### Dividing the Data
+## Dividing the Data
 
-Now the data has been loaded and in a useable state, the training dataset will be split into a training (60%) and validation (40%) dataset for the purpose of cross-validation.
+Now the data has been loaded and in a useable state, the training dataset will be split into a training (60%) and validation (40%) dataset for the purpose of **cross-validation**.
 
 ```{r}
 set.seed(9243)
@@ -82,11 +82,11 @@ validation <- training[-inTrain, ]
 training <- training[inTrain, ]
 ```
 
-## Building the Models
+# Building the Models
 
 The models will be built using all available variables in the dataset.  The models to be created are classification tree, random forest and generalised boosted regression.  These models have been selected based on their accuracy with this type of data.  The models will be used against the validation dataset and the model with the highest accuracy will be used with the testing dataset.
 
-### Classification Tree Model
+## Classification Tree Model
 
 ```{r}
 # build model
@@ -102,7 +102,7 @@ cmRp
 
 The accuracy of a classification tree model is **`r cmRp$overall['Accuracy']`**.
 
-### Random Forest Model
+## Random Forest Model
 
 ```{r}
 # build model
@@ -122,7 +122,7 @@ cmRf
 
 The accuracy of a random forest model is **`r cmRf$overall['Accuracy']`**.
 
-### Generalised Boosted Regression Model
+## Generalised Boosted Regression Model
 
 ```{r}
 # build model
@@ -140,11 +140,11 @@ cmGbm
 
 The accuracy of a boosted model is **`r cmGbm$overall['Accuracy']`**.
 
-### Model Selection
+# Model Selection
 
-The random forest model has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **`r 1-cmRf$overall['Accuracy']`**.
+The **random forest model** has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **`r 1-cmRf$overall['Accuracy']`**.
 
-## Testing
+# Testing
 
 The random forest model will be run on the test dataset to predict the category of exercise being performed.
 
