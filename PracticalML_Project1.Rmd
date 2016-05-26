@@ -71,12 +71,6 @@ training = training[, -c(1:7)]
 testing = testing[, -c(1:7)]
 ```
 
-```{r}
-############ REMOVE BEFORE PUBLISHING!
-# just to make the models work faster....
-training = training[createDataPartition(training$classe, p = 0.05, list = FALSE),]
-```
-
 ### Dividing the Data
 
 Now the data has been loaded and in a useable state, the training dataset will be split into a training (60%) and validation (40%) dataset for the purpose of cross-validation.
