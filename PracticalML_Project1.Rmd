@@ -2,10 +2,10 @@
 title: "Practical Machine Learning Project"
 author: "Paul Hickman"
 output:
-  pdf_document:
-    keep_tex: no
   html_document:
     keep_md: yes
+  pdf_document:
+    keep_tex: no
 ---
 
 # Background
@@ -53,8 +53,8 @@ if (!file.exists("pml-testing.csv"))
 }
 
 # load the training and test datasets (removing NA and error values)
-training = read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
-testing = read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
+training <- read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
+testing <- read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
 ```
 
 ## Tidying the Data
@@ -63,12 +63,12 @@ Columns with little or no variability aren't good predictors and will be removed
 
 ```{r}
 # remove columns with no data
-training = training[,colSums(is.na(training)) == 0]
-testing = testing[,colSums(is.na(testing)) == 0]
+training <- training[,colSums(is.na(training)) == 0]
+testing <- testing[,colSums(is.na(testing)) == 0]
 
 # the first 7 columns aren't required for our analysis
-training = training[, -c(1:7)]
-testing = testing[, -c(1:7)]
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
 ```
 
 ## Dividing the Data
@@ -90,55 +90,56 @@ The models will be built using all available variables in the dataset.  The mode
 
 ```{r cache=TRUE}
 # build model
-mRp = rpart(classe ~ ., method = "class", data = training)
+mRp <- train(classe ~ ., method = "rpart", data = training)
 
 # predict on the validation dataset
-pRp = predict(mRp, validation, type = "class")
+pRp <- predict(mRp, validation)
 
 # confusion matrix (for accuracy)
 cmRp <- confusionMatrix(pRp, validation$classe)
 cmRp
 ```
 
-The accuracy of a classification tree model is **`r cmRp$overall['Accuracy']`**.
+The accuracy of a classification tree model is **`r round(cmRp$overall['Accuracy'],2)*100`%**.
 
 ## Random Forest Model
 
 ```{r cache=TRUE}
 # build model
-mRf = randomForest(classe ~ ., data = training)
+tc <- trainControl(method = "cv", number = 10, allowParallel = FALSE)
+mRf <- train(classe ~ ., data = training, method = "rf", trControl = tc)
 
 # predict on the validation dataset
-pRf = predict(mRf, validation)
+pRf <- predict(mRf, validation)
 
 # confusion matrix (for accuracy)
 cmRf <- confusionMatrix(pRf, validation$classe)
 cmRf
 ```
 
-The accuracy of a random forest model is **`r cmRf$overall['Accuracy']`**.
+The accuracy of a random forest model is **`r round(cmRf$overall['Accuracy'],2)*100`%**.
 
 ## Generalised Boosted Regression Model
 
 ```{r cache=TRUE}
 # build model
 # v. slow and similar accuracy
-mGbm = train(classe~., data=training, method="gbm", verbose=FALSE,
-             trControl=trainControl(method="repeatedcv",number=5,repeats=1))
+tc <- trainControl(method = "cv", number = 10)
+mGbm <- train(classe ~ ., data = training, method = "gbm", trControl = tc, verbose = FALSE)
 
 # predict on the validation dataset
-pGbm = predict(mGbm, validation)
+pGbm <- predict(mGbm, validation)
 
 # confusion matrix (for accuracy)
 cmGbm <- confusionMatrix(pGbm, validation$classe)
 cmGbm
 ```
 
-The accuracy of a boosted model is **`r cmGbm$overall['Accuracy']`**.
+The accuracy of a boosted model is **`r round(cmGbm$overall['Accuracy'],2)*100`%**.
 
 # Model Selection
 
-The **random forest model** has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **`r 1-cmRf$overall['Accuracy']`**.
+The **random forest model** has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **`r round(1-cmRf$overall['Accuracy'],2)*100`%**.
 
 # Testing
 
@@ -148,7 +149,7 @@ The random forest model will be run on the test dataset to predict the category 
 # the predict function is not happy with the data types as they are slightly different
 # copying in a row of data from the training data and then removing it was the best
 # way to have the testing match the training data types
-testing_new = rbind.fill(training[2, -ncol(training)], testing)
+testing_new <- rbind.fill(training[2, -ncol(training)], testing)
 testing_new <- testing_new[-1, ]
 ```
 
@@ -156,6 +157,6 @@ The answer to the Coursera project is:
 
 ```{r}
 # predict on the testing dataset
-pTest = predict(mRf, testing_new)
+pTest <- predict(mRf, testing_new)
 pTest
 ```
