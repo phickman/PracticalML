@@ -114,19 +114,13 @@ $(document).ready(function () {
 </div>
 
 
-<div id="background" class="section level2">
-<h2>Background</h2>
+<div id="background" class="section level1">
+<h1>Background</h1>
 <p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.</p>
 <p>The goal of this project is to use data from accelerometers on the belt, forearm, arm, and dumbell to predict the activity 20 test subjects were performing.</p>
 </div>
-<div id="data" class="section level2">
-<h2>Data</h2>
-<p>Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).</p>
-<p>Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes. More information is available from the website here: <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a> (see the section on the Weight Lifting Exercise Dataset).</p>
-<p>The training data for this project is available here: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a></p>
-<p>The test data is available here: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a></p>
-<div id="libraries" class="section level3">
-<h3>Libraries</h3>
+<div id="libraries" class="section level1">
+<h1>Libraries</h1>
 <p>Load the required libraries.</p>
 <pre class="r"><code>library(caret)
 library(rpart)
@@ -135,8 +129,14 @@ library(gbm)
 library(plyr)
 library(dplyr)</code></pre>
 </div>
-<div id="loading-the-data" class="section level3">
-<h3>Loading the Data</h3>
+<div id="data" class="section level1">
+<h1>Data</h1>
+<p>Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).</p>
+<p>Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes. More information is available from the website here: <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a> (see the section on the Weight Lifting Exercise Dataset).</p>
+<p>The training data for this project is available here: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a></p>
+<p>The test data is available here: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a></p>
+<div id="loading-the-data" class="section level2">
+<h2>Loading the Data</h2>
 <pre class="r"><code># get the training and test data
 if (!file.exists(&quot;pml-training.csv&quot;))
 {
@@ -151,8 +151,8 @@ if (!file.exists(&quot;pml-testing.csv&quot;))
 training = read.csv(&quot;pml-training.csv&quot;, na.strings = c(&quot;&quot;, &quot;NA&quot;, &quot;#DIV/0!&quot;))
 testing = read.csv(&quot;pml-testing.csv&quot;, na.strings = c(&quot;&quot;, &quot;NA&quot;, &quot;#DIV/0!&quot;))</code></pre>
 </div>
-<div id="tidying-the-data" class="section level3">
-<h3>Tidying the Data</h3>
+<div id="tidying-the-data" class="section level2">
+<h2>Tidying the Data</h2>
 <p>Columns with little or no variability aren’t good predictors and will be removed along with the first 7 columns that don’t provide any useful information in our analysis.</p>
 <pre class="r"><code># remove columns with no data
 training = training[,colSums(is.na(training)) == 0]
@@ -162,20 +162,20 @@ testing = testing[,colSums(is.na(testing)) == 0]
 training = training[, -c(1:7)]
 testing = testing[, -c(1:7)]</code></pre>
 </div>
-<div id="dividing-the-data" class="section level3">
-<h3>Dividing the Data</h3>
-<p>Now the data has been loaded and in a useable state, the training dataset will be split into a training (60%) and validation (40%) dataset for the purpose of cross-validation.</p>
+<div id="dividing-the-data" class="section level2">
+<h2>Dividing the Data</h2>
+<p>Now the data has been loaded and in a useable state, the training dataset will be split into a training (60%) and validation (40%) dataset for the purpose of <strong>cross-validation</strong>.</p>
 <pre class="r"><code>set.seed(9243)
 inTrain &lt;- createDataPartition(training$classe, p = 0.6, list = FALSE)
 validation &lt;- training[-inTrain, ]
 training &lt;- training[inTrain, ]</code></pre>
 </div>
 </div>
-<div id="building-the-models" class="section level2">
-<h2>Building the Models</h2>
+<div id="building-the-models" class="section level1">
+<h1>Building the Models</h1>
 <p>The models will be built using all available variables in the dataset. The models to be created are classification tree, random forest and generalised boosted regression. These models have been selected based on their accuracy with this type of data. The models will be used against the validation dataset and the model with the highest accuracy will be used with the testing dataset.</p>
-<div id="classification-tree-model" class="section level3">
-<h3>Classification Tree Model</h3>
+<div id="classification-tree-model" class="section level2">
+<h2>Classification Tree Model</h2>
 <pre class="r"><code># build model
 mRp = rpart(classe ~ ., method = &quot;class&quot;, data = training)
 
@@ -218,8 +218,8 @@ cmRp</code></pre>
 ## Balanced Accuracy      0.8894   0.7429   0.8319   0.7864   0.8079</code></pre>
 <p>The accuracy of a classification tree model is <strong>0.7119551</strong>.</p>
 </div>
-<div id="random-forest-model" class="section level3">
-<h3>Random Forest Model</h3>
+<div id="random-forest-model" class="section level2">
+<h2>Random Forest Model</h2>
 <pre class="r"><code># build model
 mRf = randomForest(classe ~ ., data = training)
 
@@ -262,8 +262,8 @@ cmRf</code></pre>
 ## Balanced Accuracy      0.9985   0.9947   0.9913   0.9905   0.9974</code></pre>
 <p>The accuracy of a random forest model is <strong>0.9919704</strong>.</p>
 </div>
-<div id="generalised-boosted-regression-model" class="section level3">
-<h3>Generalised Boosted Regression Model</h3>
+<div id="generalised-boosted-regression-model" class="section level2">
+<h2>Generalised Boosted Regression Model</h2>
 <pre class="r"><code># build model
 # v. slow and similar accuracy
 mGbm = train(classe~., data=training, method=&quot;gbm&quot;, verbose=FALSE,
@@ -308,13 +308,13 @@ cmGbm</code></pre>
 ## Balanced Accuracy      0.9874   0.9558   0.9685   0.9749   0.9786</code></pre>
 <p>The accuracy of a boosted model is <strong>0.9590874</strong>.</p>
 </div>
-<div id="model-selection" class="section level3">
-<h3>Model Selection</h3>
-<p>The random forest model has the highest accuracy and will be selected. The out of sample error is calculated by 1 - accuracy, which in this case is <strong>0.0080296</strong>.</p>
 </div>
+<div id="model-selection" class="section level1">
+<h1>Model Selection</h1>
+<p>The <strong>random forest model</strong> has the highest accuracy and will be selected. The out of sample error is calculated by 1 - accuracy, which in this case is <strong>0.0080296</strong>.</p>
 </div>
-<div id="testing" class="section level2">
-<h2>Testing</h2>
+<div id="testing" class="section level1">
+<h1>Testing</h1>
 <p>The random forest model will be run on the test dataset to predict the category of exercise being performed.</p>
 <pre class="r"><code># the predict function is not happy with the data types as they are slightly different
 # copying in a row of data from the training data and then removing it was the best
