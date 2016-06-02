@@ -2,10 +2,10 @@
 title: "Practical Machine Learning Project"
 author: "Paul Hickman"
 output:
-  html_document:
-    keep_md: yes
   pdf_document:
     keep_tex: no
+  html_document:
+    keep_md: yes
 ---
 
 # Background
@@ -100,9 +100,11 @@ cmRp <- confusionMatrix(pRp, validation$classe)
 cmRp
 ```
 
-The accuracy of a classification tree model is **`r round(cmRp$overall['Accuracy'],2)*100`%**.
+The accuracy of a classification tree model is **`r round(cmRp$overall['Accuracy'],4)*100`%**.
 
 ## Random Forest Model
+
+In this model we pass parameters to the training function to perform further **cross-validation** using the training dataset.
 
 ```{r cache=TRUE}
 # build model
@@ -117,9 +119,11 @@ cmRf <- confusionMatrix(pRf, validation$classe)
 cmRf
 ```
 
-The accuracy of a random forest model is **`r round(cmRf$overall['Accuracy'],2)*100`%**.
+The accuracy of a random forest model is **`r round(cmRf$overall['Accuracy'],4)*100`%**.
 
 ## Generalised Boosted Regression Model
+
+In this model we pass parameters to the training function to perform further **cross-validation** using the training dataset.
 
 ```{r cache=TRUE}
 # build model
@@ -135,11 +139,11 @@ cmGbm <- confusionMatrix(pGbm, validation$classe)
 cmGbm
 ```
 
-The accuracy of a boosted model is **`r round(cmGbm$overall['Accuracy'],2)*100`%**.
+The accuracy of a boosted model is **`r round(cmGbm$overall['Accuracy'],4)*100`%**.
 
 # Model Selection
 
-The **random forest model** has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **`r round(1-cmRf$overall['Accuracy'],2)*100`%**.
+The **random forest model** has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **`r round(1-cmRf$overall['Accuracy'],4)*100`%**.
 
 # Testing
 

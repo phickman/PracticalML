@@ -48,8 +48,8 @@ if (!file.exists("pml-testing.csv"))
 }
 
 # load the training and test datasets (removing NA and error values)
-training = read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
-testing = read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
+training <- read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
+testing <- read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
 ```
 
 ## Tidying the Data
@@ -59,12 +59,12 @@ Columns with little or no variability aren't good predictors and will be removed
 
 ```r
 # remove columns with no data
-training = training[,colSums(is.na(training)) == 0]
-testing = testing[,colSums(is.na(testing)) == 0]
+training <- training[,colSums(is.na(training)) == 0]
+testing <- testing[,colSums(is.na(testing)) == 0]
 
 # the first 7 columns aren't required for our analysis
-training = training[, -c(1:7)]
-testing = testing[, -c(1:7)]
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
 ```
 
 ## Dividing the Data
@@ -88,10 +88,10 @@ The models will be built using all available variables in the dataset.  The mode
 
 ```r
 # build model
-mRp = rpart(classe ~ ., method = "class", data = training)
+mRp <- train(classe ~ ., method = "rpart", data = training)
 
 # predict on the validation dataset
-pRp = predict(mRp, validation, type = "class")
+pRp <- predict(mRp, validation)
 
 # confusion matrix (for accuracy)
 cmRp <- confusionMatrix(pRp, validation$classe)
@@ -103,46 +103,49 @@ cmRp
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 1934  309   14  119   50
-##          B   59  847  179   68  151
-##          C   62  177 1034  201  156
-##          D  117  128  104  834  148
-##          E   60   57   37   64  937
+##          A 1990  629  621  572  194
+##          B   33  511   49  226  192
+##          C  173  378  698  488  373
+##          D    0    0    0    0    0
+##          E   36    0    0    0  683
 ## 
 ## Overall Statistics
-##                                          
-##                Accuracy : 0.712          
-##                  95% CI : (0.7018, 0.722)
-##     No Information Rate : 0.2845         
-##     P-Value [Acc > NIR] : < 2.2e-16      
-##                                          
-##                   Kappa : 0.6348         
-##  Mcnemar's Test P-Value : < 2.2e-16      
+##                                           
+##                Accuracy : 0.4948          
+##                  95% CI : (0.4837, 0.5059)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc > NIR] : < 2.2e-16       
+##                                           
+##                   Kappa : 0.3405          
+##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.8665   0.5580   0.7558   0.6485   0.6498
-## Specificity            0.9124   0.9278   0.9080   0.9242   0.9660
-## Pos Pred Value         0.7972   0.6495   0.6344   0.6266   0.8113
-## Neg Pred Value         0.9450   0.8974   0.9463   0.9306   0.9245
-## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
-## Detection Rate         0.2465   0.1080   0.1318   0.1063   0.1194
-## Detection Prevalence   0.3092   0.1662   0.2077   0.1696   0.1472
-## Balanced Accuracy      0.8894   0.7429   0.8319   0.7864   0.8079
+## Sensitivity            0.8916  0.33663  0.51023   0.0000  0.47365
+## Specificity            0.6409  0.92099  0.78203   1.0000  0.99438
+## Pos Pred Value         0.4968  0.50544  0.33081      NaN  0.94993
+## Neg Pred Value         0.9370  0.85267  0.88319   0.8361  0.89350
+## Prevalence             0.2845  0.19347  0.17436   0.1639  0.18379
+## Detection Rate         0.2536  0.06513  0.08896   0.0000  0.08705
+## Detection Prevalence   0.5106  0.12886  0.26893   0.0000  0.09164
+## Balanced Accuracy      0.7662  0.62881  0.64613   0.5000  0.73401
 ```
 
-The accuracy of a classification tree model is **0.7119551**.
+The accuracy of a classification tree model is **49.48%**.
 
 ## Random Forest Model
+
+In this model we pass parameters to the training function to perform further **cross-validation** using the training dataset.
 
 
 ```r
 # build model
-mRf = randomForest(classe ~ ., data = training)
+tc <- trainControl(method = "cv", number = 10, allowParallel = FALSE)
+mRf <- train(classe ~ ., data = training, method = "rf", trControl = tc)
 
 # predict on the validation dataset
-pRf = predict(mRf, validation)
+pRf <- predict(mRf, validation)
 
 # confusion matrix (for accuracy)
 cmRf <- confusionMatrix(pRf, validation$classe)
@@ -154,48 +157,50 @@ cmRf
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 2229    9    0    0    0
-##          B    2 1506   15    0    0
-##          C    0    3 1350   22    3
-##          D    0    0    3 1263    4
-##          E    1    0    0    1 1435
+##          A 2229   12    0    0    0
+##          B    3 1503   18    0    0
+##          C    0    3 1347   29    4
+##          D    0    0    3 1256    5
+##          E    0    0    0    1 1433
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.992           
-##                  95% CI : (0.9897, 0.9938)
+##                Accuracy : 0.9901          
+##                  95% CI : (0.9876, 0.9921)
 ##     No Information Rate : 0.2845          
 ##     P-Value [Acc > NIR] : < 2.2e-16       
 ##                                           
-##                   Kappa : 0.9898          
+##                   Kappa : 0.9874          
 ##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9987   0.9921   0.9868   0.9821   0.9951
-## Specificity            0.9984   0.9973   0.9957   0.9989   0.9997
-## Pos Pred Value         0.9960   0.9888   0.9797   0.9945   0.9986
-## Neg Pred Value         0.9995   0.9981   0.9972   0.9965   0.9989
+## Sensitivity            0.9987   0.9901   0.9846   0.9767   0.9938
+## Specificity            0.9979   0.9967   0.9944   0.9988   0.9998
+## Pos Pred Value         0.9946   0.9862   0.9740   0.9937   0.9993
+## Neg Pred Value         0.9995   0.9976   0.9968   0.9954   0.9986
 ## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
-## Detection Rate         0.2841   0.1919   0.1721   0.1610   0.1829
-## Detection Prevalence   0.2852   0.1941   0.1756   0.1619   0.1832
-## Balanced Accuracy      0.9985   0.9947   0.9913   0.9905   0.9974
+## Detection Rate         0.2841   0.1916   0.1717   0.1601   0.1826
+## Detection Prevalence   0.2856   0.1942   0.1763   0.1611   0.1828
+## Balanced Accuracy      0.9983   0.9934   0.9895   0.9877   0.9968
 ```
 
-The accuracy of a random forest model is **0.9919704**.
+The accuracy of a random forest model is **99.01%**.
 
 ## Generalised Boosted Regression Model
+
+In this model we pass parameters to the training function to perform further **cross-validation** using the training dataset.
 
 
 ```r
 # build model
 # v. slow and similar accuracy
-mGbm = train(classe~., data=training, method="gbm", verbose=FALSE,
-             trControl=trainControl(method="repeatedcv",number=5,repeats=1))
+tc <- trainControl(method = "cv", number = 10)
+mGbm <- train(classe ~ ., data = training, method = "gbm", trControl = tc, verbose = FALSE)
 
 # predict on the validation dataset
-pGbm = predict(mGbm, validation)
+pGbm <- predict(mGbm, validation)
 
 # confusion matrix (for accuracy)
 cmGbm <- confusionMatrix(pGbm, validation$classe)
@@ -207,40 +212,40 @@ cmGbm
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 2201   60    0    2    1
-##          B   20 1407   47    9   21
-##          C    6   47 1304   36   16
-##          D    4    0   15 1229   20
-##          E    1    4    2   10 1384
+##          A 2197   50    0    1    3
+##          B   23 1410   45    8   14
+##          C    7   54 1301   37   13
+##          D    5    3   20 1230   20
+##          E    0    1    2   10 1392
 ## 
 ## Overall Statistics
-##                                           
-##                Accuracy : 0.9591          
-##                  95% CI : (0.9545, 0.9634)
-##     No Information Rate : 0.2845          
-##     P-Value [Acc > NIR] : < 2.2e-16       
-##                                           
-##                   Kappa : 0.9482          
-##  Mcnemar's Test P-Value : 4.249e-11       
+##                                          
+##                Accuracy : 0.9597         
+##                  95% CI : (0.9551, 0.964)
+##     No Information Rate : 0.2845         
+##     P-Value [Acc > NIR] : < 2.2e-16      
+##                                          
+##                   Kappa : 0.949          
+##  Mcnemar's Test P-Value : 6.062e-08      
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9861   0.9269   0.9532   0.9557   0.9598
-## Specificity            0.9888   0.9847   0.9838   0.9941   0.9973
-## Pos Pred Value         0.9722   0.9355   0.9255   0.9692   0.9879
-## Neg Pred Value         0.9944   0.9825   0.9901   0.9913   0.9910
+## Sensitivity            0.9843   0.9289   0.9510   0.9565   0.9653
+## Specificity            0.9904   0.9858   0.9829   0.9927   0.9980
+## Pos Pred Value         0.9760   0.9400   0.9214   0.9624   0.9907
+## Neg Pred Value         0.9937   0.9830   0.9896   0.9915   0.9922
 ## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
-## Detection Rate         0.2805   0.1793   0.1662   0.1566   0.1764
-## Detection Prevalence   0.2886   0.1917   0.1796   0.1616   0.1786
-## Balanced Accuracy      0.9874   0.9558   0.9685   0.9749   0.9786
+## Detection Rate         0.2800   0.1797   0.1658   0.1568   0.1774
+## Detection Prevalence   0.2869   0.1912   0.1800   0.1629   0.1791
+## Balanced Accuracy      0.9874   0.9573   0.9669   0.9746   0.9816
 ```
 
-The accuracy of a boosted model is **0.9590874**.
+The accuracy of a boosted model is **95.97%**.
 
 # Model Selection
 
-The **random forest model** has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **0.0080296**.
+The **random forest model** has the highest accuracy and will be selected.  The out of sample error is calculated by 1 - accuracy, which in this case is **0.99%**.
 
 # Testing
 
@@ -251,7 +256,7 @@ The random forest model will be run on the test dataset to predict the category 
 # the predict function is not happy with the data types as they are slightly different
 # copying in a row of data from the training data and then removing it was the best
 # way to have the testing match the training data types
-testing_new = rbind.fill(training[2, -ncol(training)], testing)
+testing_new <- rbind.fill(training[2, -ncol(training)], testing)
 testing_new <- testing_new[-1, ]
 ```
 
@@ -260,12 +265,11 @@ The answer to the Coursera project is:
 
 ```r
 # predict on the testing dataset
-pTest = predict(mRf, testing_new)
+pTest <- predict(mRf, testing_new)
 pTest
 ```
 
 ```
-##  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 
-##  B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
+##  [1] B A B A A E D B A A B C B A E E A B B B
 ## Levels: A B C D E
 ```
