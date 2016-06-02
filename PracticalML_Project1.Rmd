@@ -1,11 +1,11 @@
 ---
-title: Practical Machine Learning Project
-author: Paul Hickman
+title: "Practical Machine Learning Project"
+author: "Paul Hickman"
 output:
-  html_document:
-    keep_md: no
   pdf_document:
     keep_tex: no
+  html_document:
+    keep_md: no
 ---
 
 # Background
@@ -88,7 +88,7 @@ The models will be built using all available variables in the dataset.  The mode
 
 ## Classification Tree Model
 
-```{r}
+```{r cache=TRUE}
 # build model
 mRp = rpart(classe ~ ., method = "class", data = training)
 
@@ -104,12 +104,8 @@ The accuracy of a classification tree model is **`r cmRp$overall['Accuracy']`**.
 
 ## Random Forest Model
 
-```{r}
+```{r cache=TRUE}
 # build model
-# v. slow and similar accuracy
-#mRf = train(classe~., data=training, method="rf",
-#                trControl=trainControl(method="cv",number=5),
-#                prox=TRUE, allowParallel=TRUE)
 mRf = randomForest(classe ~ ., data = training)
 
 # predict on the validation dataset
@@ -124,7 +120,7 @@ The accuracy of a random forest model is **`r cmRf$overall['Accuracy']`**.
 
 ## Generalised Boosted Regression Model
 
-```{r}
+```{r cache=TRUE}
 # build model
 # v. slow and similar accuracy
 mGbm = train(classe~., data=training, method="gbm", verbose=FALSE,
